@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --charcoal:#101014; --charcoal-soft:#1A1A20;
+  --copper:#FF6200; --copper-hover:#E05600; --copper-soft:#FFEADB;
+  --paper:#F7F7F8; --surface:#FFFFFF; --ink:#141418; --muted:#6B7280; --line:#EAEAED;
+  --font-display:"Plus Jakarta Sans",system-ui,sans-serif;
+  --font-sans:"Inter",system-ui,sans-serif;
+}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium
+         transition-colors disabled:opacity-50 disabled:pointer-events-none; }
+  .btn-primary { @apply btn bg-copper text-white hover:bg-copper-hover; }
+  .btn-ghost   { @apply btn text-ink hover:bg-black/5; }
+  .btn-outline { @apply btn border border-line bg-surface text-ink hover:bg-black/[0.03]; }
+  .card { @apply rounded-xl2 border border-line bg-surface shadow-card; }
+  .input { @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink
+           outline-none placeholder:text-muted focus:border-copper focus:ring-2 focus:ring-copper-soft; }
+  .label { @apply mb-1.5 block text-xs font-medium text-muted; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium; }
+  .th { @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted; }
+  .td { @apply px-4 py-3 text-sm text-ink align-middle; }
+}
+::-webkit-scrollbar{height:10px;width:10px}
+::-webkit-scrollbar-thumb{background:#d8d8dc;border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
