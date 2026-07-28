@@ -9,7 +9,10 @@ export interface FinanceUser {
 export interface FinanceEntry {
   id: string; kind: FinanceKind; amount: number; category: string;
   note: string | null; entry_date: string; status: EntryStatus;
-  logged_by: string | null; approved_by: string | null; created_at: string;
+  /** Cash | Bank transfer | UPI | Card | Cheque | Other */
+  method: string | null;
+  logged_by: string | null; approved_by: string | null;
+  approved_at: string | null; created_at: string;
 }
 export interface Payable {
   id: string; label: string; amount: number;
