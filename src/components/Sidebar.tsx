@@ -8,7 +8,7 @@ import { cx, initials } from "@/lib/utils";
 import type { FinanceUser } from "@/lib/types";
 import {
   LayoutDashboard, IndianRupee, TrendingDown, Wallet, BarChart3,
-  FileText, Sparkles, Users, LogOut, Building2,
+  FileText, Sparkles, Users, LogOut, Building2, Repeat,
 } from "lucide-react";
 
 const NAV = [
@@ -16,7 +16,8 @@ const NAV = [
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/revenue",  label: "Money in", icon: IndianRupee },
   { href: "/expenses", label: "Money out", icon: TrendingDown },
-  { href: "/dues",     label: "Dues",     icon: Wallet },
+  { href: "/dues",      label: "Dues",      icon: Wallet },
+  { href: "/recurring", label: "Recurring", icon: Repeat },
   { href: "/reports",  label: "Reports",  icon: BarChart3 },
 ];
 const SETTINGS = [
