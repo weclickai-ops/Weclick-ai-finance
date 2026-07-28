@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,8 +76,28 @@ export default function LoginPage() {
           )}
           <input className="input" type="email" value={email} required placeholder="you@weclickai.com"
                  onChange={(e) => setEmail(e.target.value)} />
-          <input className="input" type="password" value={password} required minLength={6} placeholder="Password"
-                 onChange={(e) => setPassword(e.target.value)} />
+          <div className="relative">
+            <input
+              className="input pr-10"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              required
+              minLength={6}
+              placeholder="Password"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted
+                         transition-colors hover:text-ink focus:outline-none
+                         focus-visible:ring-2 focus-visible:ring-copper"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{error}</p>}
           {notice && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[13px] text-emerald-700">{notice}</p>}
           <button type="submit" className="btn-primary w-full" disabled={loading}>
