@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "../PageHeader";
 import { PeriodToggle } from "@/components/PeriodToggle";
 import { loadBook, summarise, byCategory } from "@/lib/finance";
-import { periodLabel, periodWord, type Period } from "@/lib/period";
+import { periodLabel, periodStart, periodWord, type Period } from "@/lib/period";
 import { money, fmtDate } from "@/lib/utils";
 import { ApprovalQueue } from "./ApprovalQueue";
 import { CashFlow } from "./CashFlow";
@@ -20,7 +20,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const { data: me } = await supabase.from("finance_users").select("*").eq("id", user.id).single();
   const { data: team } = await supabase.from("finance_users").select("id, full_name, email");
 
-  const book = await loadBook(supabase);
+  // Only the window on screen — see loadBook in lib/finance.ts.
+  const book = await loadBook(supabase, { since: periodStart(period) });
   const s = summarise(book, period);
   const cats = byCategory(s.expensesInPeriod);
   const catMax = cats[0]?.[1] ?? 1;
