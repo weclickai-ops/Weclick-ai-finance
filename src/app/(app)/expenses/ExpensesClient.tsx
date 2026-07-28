@@ -63,9 +63,28 @@ export function ExpensesClient({ me, entries: initial, categories, team, fromISO
     }).eq("id", id);
     router.refresh();
   }
-  async function remove(id: string) {
+  /**
+   * The delete button used to render only when the entry was `pending`, you
+   * could NOT approve, and you had logged it yourself. So an owner never saw a
+   * delete button at all, and an approved entry could never be removed by
+   * anyone — a mistyped salary was permanent. The database always allowed an
+   * owner to delete; there was simply no button wired to it.
+   */
+  async function remove(id: string, label: string) {
+    if (!confirm(`Delete this entry (${label})? This cannot be undone.`)) return;
+    const before = entries;
     setEntries((es) => es.filter((e) => e.id !== id));
-    await supabase.from("finance_entries").delete().eq("id", id);
+    const { error: err } = await supabase.from("finance_entries").delete().eq("id", id);
+    if (err) {
+      setEntries(before);            // put it back — the write did not happen
+      setError(
+        err.message.toLowerCase().includes("row-level security")
+          ? "You don't have permission to delete that entry."
+          : err.message
+      );
+      return;
+    }
+    setError(null);
     router.refresh();
   }
 
@@ -158,21 +177,30 @@ export function ExpensesClient({ me, entries: initial, categories, team, fromISO
                 <td className="td"><StatusChip status={e.status} /></td>
                 <td className="td text-right font-medium">{money(Number(e.amount))}</td>
                 <td className="td text-right">
+                  <span className="flex justify-end gap-1.5">
                   {e.status === "pending" && canApprove && (
-                    <span className="flex justify-end gap-1.5">
+                    <>
                       <button className="btn-outline px-2 py-1" onClick={() => decide(e.id, "approved")}>
                         <Check className="h-3.5 w-3.5 text-emerald-700" />
                       </button>
                       <button className="btn-outline px-2 py-1" onClick={() => decide(e.id, "rejected")}>
                         <X className="h-3.5 w-3.5 text-red-600" />
                       </button>
-                    </span>
+                    </>
                   )}
-                  {e.status === "pending" && !canApprove && e.logged_by === me?.id && (
-                    <button className="btn-ghost px-2" onClick={() => remove(e.id)}>
-                      <Trash2 className="h-4 w-4 text-muted" />
+                  {/* Owners and accountants may delete anything; everyone else
+                      may delete only their own entries while still pending. */}
+                  {(canApprove || (e.status === "pending" && e.logged_by === me?.id)) && (
+                    <button
+                      className="btn-ghost px-2"
+                      title="Delete this entry"
+                      aria-label="Delete this entry"
+                      onClick={() => remove(e.id, `${e.category} · ${money(Number(e.amount))}`)}
+                    >
+                      <Trash2 className="h-4 w-4 text-muted hover:text-red-600" />
                     </button>
                   )}
+                  </span>
                 </td>
               </tr>
             ))}
