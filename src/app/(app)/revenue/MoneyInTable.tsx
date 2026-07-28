@@ -26,16 +26,29 @@ export function MoneyInTable({ rows: initial, canDelete, period }: {
 }) {
   const router = useRouter();
   const supabase = createClient();
-  const [rows, setRows] = useState(initial);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * The rows come straight from props, NOT copied into state.
+   *
+   * This used to be `useState(initial)`, which snapshots the server data once on
+   * mount. Switching the Week/Month/FY toggle re-renders the page with new props
+   * but React keeps the original state — so the totals above updated while the
+   * table below kept showing the first period it ever loaded. On a week with no
+   * entries that read "Nothing received" underneath a non-zero total.
+   *
+   * Optimistic delete is handled with a set of removed ids instead, so props
+   * stay the single source of truth.
+   */
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
+  const rows = initial.filter((r) => !removed.has(r.id));
 
   async function remove(r: MoneyInRow) {
     if (!confirm(`Delete this entry (${r.who} · ${money(r.amount)})? This cannot be undone.`)) return;
-    const before = rows;
-    setRows((rs) => rs.filter((x) => x.id !== r.id));
+    setRemoved((s) => new Set(s).add(r.id));
     const { error: err } = await supabase.from("finance_entries").delete().eq("id", r.id);
     if (err) {
-      setRows(before);
+      setRemoved((s) => { const n = new Set(s); n.delete(r.id); return n; });
       setError(err.message.toLowerCase().includes("row-level security")
         ? "You don't have permission to delete that entry."
         : err.message);
