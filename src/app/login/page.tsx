@@ -7,7 +7,7 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "request">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -31,24 +31,18 @@ export default function LoginPage() {
           password,
           options: {
             data: { full_name: fullName },
-            // CRM and Finance share one Supabase auth project, and the project's
-            // Site URL can only point at one of them. Without this, confirmation
-            // links sent from Finance landed on the CRM. Using the origin the
-            // person actually signed up on keeps each app sending people back to
-            // itself.
             emailRedirectTo: `${window.location.origin}/pending`,
           },
         });
         if (error) throw error;
 
-        // The finance_users row and the owner notification are created by
-        // /pending, not here. With "Confirm email" on, signUp returns a null
-        // session, so anything gated on data.session silently never ran — which
-        // is why requests were never reaching the approval queue.
+        // /pending creates the finance_users row. If the address is on the
+        // auto-approve list it redirects straight through to /overview, so
+        // approved people never see a waiting screen.
         if (data.session) {
           router.push("/pending"); router.refresh();
         } else {
-          setNotice("Check your email for the confirmation link. Your request reaches an owner once you've confirmed and signed in.");
+          setNotice("Check your email for the confirmation link, then sign in.");
           setMode("signin");
         }
       }
@@ -70,7 +64,7 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={submit} className="space-y-2.5">
-          {mode === "request" && (
+          {mode === "signup" && (
             <input className="input" value={fullName} required placeholder="Full name"
                    onChange={(e) => setFullName(e.target.value)} />
           )}
@@ -102,15 +96,15 @@ export default function LoginPage() {
           {notice && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-[13px] text-emerald-700">{notice}</p>}
           <button type="submit" className="btn-primary w-full" disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {mode === "signin" ? "Sign in" : "Request access"}
+            {mode === "signin" ? "Sign in" : "Create account"}
           </button>
         </form>
 
         <p className="mt-5 text-center text-[13px] text-muted">
-          {mode === "signin" ? "No account?" : "Already have access?"}{" "}
+          {mode === "signin" ? "No account?" : "Already have one?"}{" "}
           <button className="font-medium text-copper hover:underline"
-                  onClick={() => { setMode(mode === "signin" ? "request" : "signin"); setError(null); setNotice(null); }}>
-            {mode === "signin" ? "Request access" : "Sign in"}
+                  onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); setNotice(null); }}>
+            {mode === "signin" ? "Create account" : "Sign in"}
           </button>
         </p>
       </div>
