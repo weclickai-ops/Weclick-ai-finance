@@ -41,6 +41,16 @@ export function TeamClient({ team: initial, meId }: { team: FinanceUser[]; meId:
 
   return (
     <div className="space-y-5">
+      {/* Roles are set in the CRM and mirrored here by a database trigger
+          (06-sync-roles-from-crm.sql), so there is one place to manage people. */}
+      <div className="rounded-xl2 bg-black/[0.03] px-4 py-3 text-[13px] text-muted">
+        Roles come from the CRM. Change someone in{" "}
+        <a href="https://crm.weclickai.com/settings/team" target="_blank" rel="noreferrer"
+           className="font-medium text-copper hover:underline">CRM · Team &amp; roles</a>{" "}
+        and it applies here too — admin becomes owner, manager becomes accountant,
+        agent becomes member.
+      </div>
+
       {waiting.length > 0 && (
         <div className="card overflow-hidden">
           <div className="flex items-center gap-2 border-b border-line px-5 py-4">
@@ -95,10 +105,11 @@ export function TeamClient({ team: initial, meId }: { team: FinanceUser[]; meId:
                   </div>
                 </td>
                 <td className="td">
-                  <select className="input w-40 capitalize" value={u.role} disabled={u.id === meId}
-                          onChange={(e) => setRole(u.id, e.target.value as FinanceRole)}>
-                    {ROLES.map((r) => <option key={r} value={r} className="capitalize">{r}</option>)}
-                  </select>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="chip bg-black/5 capitalize text-ink">{u.role}</span>
+                    <a href="https://crm.weclickai.com/settings/team" target="_blank" rel="noreferrer"
+                       className="text-xs text-copper hover:underline">change in CRM</a>
+                  </span>
                   <p className="mt-1 text-xs text-muted">{HELP[u.role]}</p>
                 </td>
                 <td className="td">
