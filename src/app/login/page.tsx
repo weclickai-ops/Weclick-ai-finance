@@ -26,18 +26,28 @@ export default function LoginPage() {
         router.push("/overview"); router.refresh();
       } else {
         const { data, error } = await supabase.auth.signUp({
-          email, password, options: { data: { full_name: fullName } },
+          email,
+          password,
+          options: {
+            data: { full_name: fullName },
+            // CRM and Finance share one Supabase auth project, and the project's
+            // Site URL can only point at one of them. Without this, confirmation
+            // links sent from Finance landed on the CRM. Using the origin the
+            // person actually signed up on keeps each app sending people back to
+            // itself.
+            emailRedirectTo: `${window.location.origin}/pending`,
+          },
         });
         if (error) throw error;
+
+        // The finance_users row and the owner notification are created by
+        // /pending, not here. With "Confirm email" on, signUp returns a null
+        // session, so anything gated on data.session silently never ran — which
+        // is why requests were never reaching the approval queue.
         if (data.session) {
-          await supabase.rpc("request_finance_access", { p_full_name: fullName });
-          fetch("/api/access-request", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, full_name: fullName }),
-          }).catch(() => {});
           router.push("/pending"); router.refresh();
         } else {
-          setNotice("Request sent. Confirm your email, sign in, then wait to be approved.");
+          setNotice("Check your email for the confirmation link. Your request reaches an owner once you've confirmed and signed in.");
           setMode("signin");
         }
       }
