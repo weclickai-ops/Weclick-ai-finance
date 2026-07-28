@@ -16,14 +16,19 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
 
   const [{ data: me }, { data: entries }, { data: cats }, { data: team }] = await Promise.all([
     supabase.from("finance_users").select("*").eq("id", user.id).single(),
-    supabase.from("finance_entries").select("*").order("entry_date", { ascending: false }).limit(500),
+    // Money out means money out. This page used to select every entry
+    // regardless of kind, so cash INCOME was listed under Expenses — visible
+    // as "Client delivery · Money in (cash / offline)" in the outgoings list,
+    // while the total below it (correctly) ignored them.
+    supabase.from("finance_entries").select("*").neq("kind", "income")
+      .order("entry_date", { ascending: false }).limit(500),
     supabase.from("finance_categories").select("*").order("position"),
     supabase.from("finance_users").select("id, full_name, email"),
   ]);
 
   return (
     <>
-      <PageHeader title="Expenses" subtitle={`Logged by the team, approved by an owner · ${periodLabel(period)}`}
+      <PageHeader title="Money out" subtitle={`Logged by the team, approved by an owner · ${periodLabel(period)}`}
                   action={<PeriodToggle value={period} />} />
       <ExpensesClient
         me={me} entries={entries ?? []} categories={cats ?? []} team={team ?? []}
