@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "../PageHeader";
 import { PeriodToggle } from "@/components/PeriodToggle";
-import { StatusChip } from "@/components/ui/StatusChip";
+import { MoneyInTable, type MoneyInRow } from "./MoneyInTable";
 import { loadBook, summarise } from "@/lib/finance";
 import { periodStart, periodLabel, type Period } from "@/lib/period";
-import { money, fmtDate } from "@/lib/utils";
+import { money } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +27,11 @@ export default async function RevenuePage({
   const book = await loadBook(supabase, { since: periodStart(period) });
   const s = summarise(book, period);
 
-  type Row = {
-    id: string; date: string; source: string; who: string;
-    method: string; amount: number; status?: string; manual: boolean;
-  };
+  const { data: me } = await supabase
+    .from("finance_users").select("role").eq("id", (await supabase.auth.getUser()).data.user!.id).maybeSingle();
+  const canDelete = me?.role === "owner" || me?.role === "accountant";
 
-  const rows: Row[] = [
+  const rows: MoneyInRow[] = [
     ...s.paymentsInPeriod.map((p) => {
       const inv = book.invoices.find((i) => i.id === p.invoice_id);
       return {
@@ -87,30 +86,7 @@ export default async function RevenuePage({
           <h2 className="font-display text-base font-semibold">Received</h2>
           <span className="font-display text-base font-semibold">{money(s.moneyIn)}</span>
         </div>
-        <table className="w-full">
-          <thead><tr className="border-b border-line">
-            <th className="th">Date</th><th className="th">Source</th><th className="th">Client / note</th>
-            <th className="th">Method</th><th className="th">Status</th><th className="th text-right">Amount</th>
-          </tr></thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b border-line last:border-0">
-                <td className="td whitespace-nowrap text-muted">{fmtDate(r.date)}</td>
-                <td className="td">
-                  {r.source}
-                  {r.manual && <span className="ml-2 chip bg-black/5 text-muted">manual</span>}
-                </td>
-                <td className="td">{r.who}</td>
-                <td className="td text-muted">{r.method}</td>
-                <td className="td">{r.status ? <StatusChip status={r.status} /> : <span className="text-muted">—</span>}</td>
-                <td className="td text-right font-medium text-emerald-700">+{money(r.amount)}</td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr><td className="td text-muted" colSpan={6}>Nothing received this {period}.</td></tr>
-            )}
-          </tbody>
-        </table>
+        <MoneyInTable rows={rows} canDelete={canDelete} period={period} />
       </div>
 
       {partial.length > 0 && (
