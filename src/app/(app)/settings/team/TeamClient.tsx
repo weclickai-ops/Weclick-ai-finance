@@ -8,9 +8,9 @@ import { Check, X } from "lucide-react";
 
 const ROLES: FinanceRole[] = ["owner", "accountant", "member"];
 const HELP: Record<FinanceRole, string> = {
-  owner: "Everything, including granting access.",
+  owner: "Everything, including the team.",
   accountant: "Approves expenses, edits dues and categories.",
-  member: "Logs expenses, sees the totals.",
+  member: "Logs entries, sees the books.",
 };
 
 export function TeamClient({ team: initial, meId }: { team: FinanceUser[]; meId: string }) {
@@ -29,10 +29,6 @@ export function TeamClient({ team: initial, meId }: { team: FinanceUser[]; meId:
   async function reject(id: string) {
     setTeam((t) => t.filter((u) => u.id !== id));
     await supabase.from("finance_users").delete().eq("id", id);
-  }
-  async function setRole(id: string, role: FinanceRole) {
-    setTeam((t) => t.map((u) => (u.id === id ? { ...u, role } : u)));
-    await supabase.from("finance_users").update({ role }).eq("id", id);
   }
   async function toggle(id: string, active: boolean) {
     setTeam((t) => t.map((u) => (u.id === id ? { ...u, active } : u)));
@@ -59,24 +55,28 @@ export function TeamClient({ team: initial, meId }: { team: FinanceUser[]; meId:
           </div>
           <ul>
             {waiting.map((u) => (
-              <li key={u.id} className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3 last:border-0">
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-black/5 text-sm font-semibold">
-                  {initials(u.full_name, u.email)}
+              <li key={u.id} className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5 last:border-0">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-9 w-9 place-items-center rounded-full bg-black/5 text-sm font-semibold">
+                    {initials(u.full_name, u.email)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{u.full_name ?? "—"}</p>
+                    <p className="text-xs text-muted">{u.email}</p>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{u.full_name ?? "—"}</p>
-                  <p className="truncate text-xs text-muted">{u.email}</p>
+                <div className="flex items-center gap-2">
+                  <select className="input w-36 capitalize" value={pick[u.id] ?? "member"}
+                          onChange={(e) => setPick({ ...pick, [u.id]: e.target.value as FinanceRole })}>
+                    {ROLES.map((r) => <option key={r} value={r} className="capitalize">{r}</option>)}
+                  </select>
+                  <button className="btn-primary px-3 py-1.5 text-sm" onClick={() => approve(u.id)}>
+                    <Check className="h-3.5 w-3.5" /> Approve
+                  </button>
+                  <button className="btn-ghost px-2" onClick={() => reject(u.id)} title="Reject">
+                    <X className="h-4 w-4 text-muted" />
+                  </button>
                 </div>
-                <select className="input w-36 capitalize" value={pick[u.id] ?? "member"}
-                        onChange={(e) => setPick({ ...pick, [u.id]: e.target.value as FinanceRole })}>
-                  {ROLES.map((r) => <option key={r} value={r} className="capitalize">{r}</option>)}
-                </select>
-                <button className="btn-outline px-2.5" onClick={() => approve(u.id)}>
-                  <Check className="h-4 w-4 text-emerald-700" />
-                </button>
-                <button className="btn-outline px-2.5" onClick={() => reject(u.id)}>
-                  <X className="h-4 w-4 text-red-600" />
-                </button>
               </li>
             ))}
           </ul>
@@ -93,12 +93,13 @@ export function TeamClient({ team: initial, meId }: { team: FinanceUser[]; meId:
               <tr key={u.id} className="border-b border-line last:border-0">
                 <td className="td">
                   <div className="flex items-center gap-3">
-                    <div className="grid h-9 w-9 place-items-center rounded-full bg-charcoal text-sm font-semibold text-white">
+                    <div className="grid h-9 w-9 place-items-center rounded-full bg-black/5 text-sm font-semibold">
                       {initials(u.full_name, u.email)}
                     </div>
                     <div>
                       <p className="font-medium">
-                        {u.full_name ?? "—"} {u.id === meId && <span className="text-xs text-muted">(you)</span>}
+                        {u.full_name ?? "—"}{" "}
+                        {u.id === meId && <span className="text-xs text-muted">(you)</span>}
                       </p>
                       <p className="text-xs text-muted">{u.email}</p>
                     </div>
