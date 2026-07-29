@@ -8,15 +8,16 @@ import { cx, initials } from "@/lib/utils";
 import type { FinanceUser } from "@/lib/types";
 import {
   LayoutDashboard, IndianRupee, TrendingDown, Wallet, BarChart3,
-  FileText, Sparkles, Users, LogOut, Building2, Repeat,
+  FileText, Sparkles, Users, LogOut, Building2, Repeat, Scale,
 } from "lucide-react";
 
 const NAV = [
   { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/invoices", label: "Invoices", icon: FileText },
+  { href: "/balance",  label: "Bank balance", icon: Wallet },
   { href: "/revenue",  label: "Money in", icon: IndianRupee },
   { href: "/expenses", label: "Money out", icon: TrendingDown },
-  { href: "/dues",      label: "Dues",      icon: Wallet },
+  { href: "/dues",      label: "Dues",      icon: Scale },
   { href: "/recurring", label: "Recurring", icon: Repeat },
   { href: "/reports",  label: "Reports",  icon: BarChart3 },
 ];
