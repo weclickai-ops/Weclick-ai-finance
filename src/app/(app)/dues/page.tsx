@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/session";
 import { PageHeader } from "../PageHeader";
 import { loadBook, summarise, isOverdue, daysOverdue } from "@/lib/finance";
 import { money, fmtDateFull } from "@/lib/utils";
@@ -9,9 +10,8 @@ export const dynamic = "force-dynamic";
 
 export default async function DuesPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, me } = await getSession();
   if (!user) redirect("/login");
-  const { data: me } = await supabase.from("finance_users").select("*").eq("id", user.id).single();
   const book = await loadBook(supabase);
   const s = summarise(book, "month");
 
