@@ -116,6 +116,29 @@ export function CompanyClient({ initial }: { initial: any }) {
       </div>
 
       <div className="card p-5">
+        <h2 className="font-display text-base font-semibold">Opening balance</h2>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted">
+          What was already in the bank before you started recording here. The
+          Bank balance page adds everything since to this figure, so leaving it
+          at zero makes that page read low by exactly this amount.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="label">Amount</label>
+            <input className="input" inputMode="decimal" placeholder="0"
+                   value={s.opening_balance ?? ""}
+                   onChange={(e) => set("opening_balance", e.target.value)} />
+          </div>
+          <div>
+            <label className="label">As at</label>
+            <input type="date" className="input"
+                   value={s.opening_balance_on ?? ""}
+                   onChange={(e) => set("opening_balance_on", e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      <div className="card p-5">
         <h2 className="font-display text-base font-semibold">Terms &amp; conditions</h2>
         <p className="mt-0.5 text-xs text-muted">Printed at the bottom of every invoice.</p>
         <textarea className="input mt-3 min-h-[140px] resize-y" value={s.default_terms ?? ""}
