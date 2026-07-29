@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/session";
 import { PageHeader } from "../PageHeader";
 import { PeriodToggle } from "@/components/PeriodToggle";
 import { MoneyInTable, type MoneyInRow } from "./MoneyInTable";
@@ -27,8 +28,7 @@ export default async function RevenuePage({
   const book = await loadBook(supabase, { since: periodStart(period) });
   const s = summarise(book, period);
 
-  const { data: me } = await supabase
-    .from("finance_users").select("role").eq("id", (await supabase.auth.getUser()).data.user!.id).maybeSingle();
+  const { me } = await getSession();
   const canDelete = me?.role === "owner" || me?.role === "accountant";
 
   const rows: MoneyInRow[] = [
