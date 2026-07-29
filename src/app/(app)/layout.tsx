@@ -1,15 +1,11 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/session";
 import { Sidebar } from "@/components/Sidebar";
 import type { FinanceUser } from "@/lib/types";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, me: fu } = await getSession();
   if (!user) redirect("/login");
-
-  const { data: fu } = await supabase
-    .from("finance_users").select("*").eq("id", user.id).maybeSingle();
 
   // no finance account, or not approved yet — the CRM login does not get you in here
   if (!fu || !fu.active) redirect("/pending");
