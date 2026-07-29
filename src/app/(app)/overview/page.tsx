@@ -25,11 +25,25 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   // One window further back than we display, so every category can be compared
   // against the same period last time. Still bounded — see loadBook.
   const prev = previousWindow(period);
-  const [book, { data: catRows }] = await Promise.all([
+  const [book, { data: catRows }, { data: cs }, { data: allPay }, { data: allEnt }] = await Promise.all([
     loadBook(supabase, { since: prev.from }),
     supabase.from("finance_categories").select("name, color"),
+    // The bank figure is a running total, not a period one — so it needs its
+    // own all-time queries rather than the windowed book above.
+    supabase.from("company_settings").select("opening_balance").eq("id", 1).maybeSingle(),
+    supabase.from("invoice_payments").select("amount"),
+    supabase.from("finance_entries").select("amount, kind, status"),
   ]);
   const s = summarise(book, period);
+
+  const approvedAll = (allEnt ?? []).filter((e: any) => e.status === "approved");
+  const addUp = (rows: any[]) => rows.reduce((t: number, r: any) => t + Number(r.amount), 0);
+  const bankBalance =
+    Number(cs?.opening_balance ?? 0)
+    + addUp(allPay ?? [])
+    + addUp(approvedAll.filter((e: any) => e.kind === "income"))
+    - addUp(approvedAll.filter((e: any) => e.kind === "expense"));
+  const gstAll = addUp(approvedAll.filter((e: any) => e.kind === "gst_setaside"));
 
   const colourOf = (name: string) =>
     (catRows ?? []).find((c: any) => c.name === name)?.color ?? "#8A8F98";
@@ -73,7 +87,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
       {/* hero */}
       <div className="card overflow-hidden">
-        <div className="grid gap-px bg-line sm:grid-cols-3">
+        <div className="grid gap-px bg-line sm:grid-cols-2 lg:grid-cols-4">
           <div className="bg-surface p-6">
             <p className="text-sm text-muted">Net this {periodWord(period)}</p>
             <p className={`mt-2 font-display text-[34px] font-semibold leading-none tracking-tight
@@ -107,6 +121,22 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
             </div>
             <p className="mt-2 font-display text-2xl font-semibold">{money(s.spent)}</p>
             <p className="mt-2.5 text-xs text-muted">{s.expensesInPeriod.length} approved expenses</p>
+          </Link>
+          <Link href="/balance" className="bg-surface p-6 transition-colors hover:bg-black/[0.02]">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-black/[0.04]">
+                <Wallet className="h-4 w-4 text-ink" />
+              </span>
+              <p className="text-sm text-muted">In the bank</p>
+            </div>
+            <p className={`mt-2 font-display text-2xl font-semibold ${bankBalance < 0 ? "text-red-600" : ""}`}>
+              {money(bankBalance)}
+            </p>
+            <p className="mt-2.5 text-xs text-muted">
+              {gstAll > 0
+                ? `${money(bankBalance - gstAll)} yours · ${money(gstAll)} GST held`
+                : "running total, not this " + periodWord(period)}
+            </p>
           </Link>
         </div>
       </div>
