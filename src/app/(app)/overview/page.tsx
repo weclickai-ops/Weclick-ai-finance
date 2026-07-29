@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getSession, getTeam } from "@/lib/session";
 import { PageHeader } from "../PageHeader";
 import { PeriodToggle } from "@/components/PeriodToggle";
 import { loadBook, summarise } from "@/lib/finance";
@@ -17,10 +18,9 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const period = (["month", "year"].includes(sp.period ?? "") ? sp.period : "week") as Period;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, me } = await getSession();
   if (!user) redirect("/login");
-  const { data: me } = await supabase.from("finance_users").select("*").eq("id", user.id).single();
-  const { data: team } = await supabase.from("finance_users").select("id, full_name, email");
+  const team = await getTeam();
 
   // One window further back than we display, so every category can be compared
   // against the same period last time. Still bounded — see loadBook.
