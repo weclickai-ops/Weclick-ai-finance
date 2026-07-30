@@ -8,18 +8,21 @@ import { cx, initials } from "@/lib/utils";
 import type { FinanceUser } from "@/lib/types";
 import {
   LayoutDashboard, IndianRupee, TrendingDown, Wallet, BarChart3,
-  FileText, Sparkles, Users, LogOut, Building2, Repeat, Scale,
+  FileText, Sparkles, Users, LogOut, Building2, Repeat, Scale, ArrowLeftRight,
 } from "lucide-react";
 
+/**
+ * Seven modules, not eleven. Money in and Money out collapsed into
+ * Transactions; Dues and Recurring moved under it as tabs. The old routes
+ * still exist and still work — nothing was deleted, just unlisted, so any
+ * bookmark or link in an email keeps resolving.
+ */
 const NAV = [
-  { href: "/overview", label: "Overview", icon: LayoutDashboard },
-  { href: "/invoices", label: "Invoices", icon: FileText },
-  { href: "/balance",  label: "Bank balance", icon: Wallet },
-  { href: "/revenue",  label: "Money in", icon: IndianRupee },
-  { href: "/expenses", label: "Money out", icon: TrendingDown },
-  { href: "/dues",      label: "Dues",      icon: Scale },
-  { href: "/recurring", label: "Recurring", icon: Repeat },
-  { href: "/reports",  label: "Reports",  icon: BarChart3 },
+  { href: "/overview",     label: "Dashboard",    icon: LayoutDashboard },
+  { href: "/invoices",     label: "Invoices",     icon: FileText },
+  { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { href: "/balance",      label: "Bank accounts", icon: Wallet },
+  { href: "/reports",      label: "Reports",      icon: BarChart3 },
 ];
 const SETTINGS = [
   { href: "/settings/company",    label: "Company & invoice", icon: Building2 },
