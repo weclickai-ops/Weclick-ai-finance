@@ -8,7 +8,9 @@ import { money, cx, fmtDate } from "@/lib/utils";
 import {
   Search, X, SlidersHorizontal, ArrowDownLeft, ArrowUpRight,
   ArrowLeftRight, Landmark, Download, ExternalLink, Receipt, FileText,
+  Pencil, Trash2, Loader2, Check,
 } from "lucide-react";
+import type { FinanceUser } from "@/lib/types";
 
 export type Txn = {
   id: string;
@@ -44,11 +46,13 @@ export function TransactionsClient({
   banks,
   categories,
   people,
+  me,
 }: {
   txns: Txn[];
   banks: { id: string; label: string }[];
   categories: string[];
   people: Record<string, string>;
+  me: FinanceUser | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -66,6 +70,95 @@ export function TransactionsClient({
     by: "txn_date", dir: "desc",
   });
   const supabase = createClient();
+
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [draft, setDraft] = useState({
+    amount: "", txn_date: "", category: "", party: "", description: "",
+    bank_account_id: "", reference: "",
+  });
+
+  const canApprove = me?.role === "owner" || me?.role === "accountant";
+  const isOwner = me?.role === "owner";
+
+  /** Who may change what. Entries you logged yourself stay yours while pending. */
+  function canEdit(t: Txn) {
+    if (t.source === "entry") return canApprove || (t.actor === me?.id && t.status === "pending");
+    return canApprove;
+  }
+  function canDelete(t: Txn) {
+    if (t.source === "entry") return isOwner || (t.actor === me?.id && t.status === "pending");
+    return canApprove;
+  }
+
+  function startEdit(t: Txn) {
+    setDraft({
+      amount: String(t.amount),
+      txn_date: t.txn_date,
+      category: t.category,
+      party: t.party,
+      description: t.description,
+      bank_account_id: t.bank_account_id ?? "",
+      reference: t.reference ?? "",
+    });
+    setErr(null);
+    setEditing(true);
+  }
+
+  async function saveEdit(t: Txn) {
+    const amt = Number(draft.amount);
+    if (!amt || amt <= 0) { setErr("Enter an amount."); return; }
+    setSaving(true); setErr(null);
+
+    let error = null;
+    if (t.source === "entry") {
+      ({ error } = await supabase.from("finance_entries").update({
+        amount: amt,
+        entry_date: draft.txn_date,
+        category: draft.category,
+        client_name: draft.party || null,
+        note: draft.description || null,
+        bank_account_id: draft.bank_account_id || null,
+      }).eq("id", t.id));
+    } else if (t.source === "invoice_payment") {
+      // The invoice trigger recalculates amount_paid and status from this.
+      ({ error } = await supabase.from("invoice_payments").update({
+        amount: amt,
+        paid_on: draft.txn_date,
+        reference: draft.reference || null,
+        bank_account_id: draft.bank_account_id || null,
+      }).eq("id", t.id));
+    } else {
+      ({ error } = await supabase.from("bank_transfers").update({
+        amount: amt,
+        moved_on: draft.txn_date,
+        reference: draft.reference || null,
+        note: draft.description || null,
+      }).eq("id", t.id));
+    }
+
+    setSaving(false);
+    if (error) { setErr(error.message); return; }
+    setEditing(false);
+    setOpenId(null);
+    router.refresh();
+  }
+
+  async function remove(t: Txn) {
+    setSaving(true); setErr(null);
+    const table =
+      t.source === "entry" ? "finance_entries"
+      : t.source === "invoice_payment" ? "invoice_payments"
+      : "bank_transfers";
+    const { error } = await supabase.from(table).delete().eq("id", t.id);
+    setSaving(false);
+    if (error) { setErr(error.message); return; }
+    setConfirming(false);
+    setOpenId(null);
+    router.refresh();
+  }
 
   /** Receipts live in a private bucket — mint a short-lived link to view one. */
   async function openReceipt(path: string) {
@@ -307,7 +400,7 @@ export function TransactionsClient({
       {/* drawer */}
       {open && (
         <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/20" onClick={() => setOpenId(null)} />
+          <div className="absolute inset-0 bg-black/20" onClick={() => { setOpenId(null); setEditing(false); setConfirming(false); }} />
           <div className="absolute right-0 top-0 h-full w-[400px] max-w-[92vw] overflow-y-auto border-l border-line bg-surface p-6 shadow-2xl">
             <div className="flex items-start justify-between">
               <div>
@@ -323,6 +416,79 @@ export function TransactionsClient({
               </button>
             </div>
 
+            {err && (
+              <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-700">{err}</p>
+            )}
+
+            {editing ? (
+              <div className="mt-6 space-y-3">
+                <div>
+                  <label className="label">Amount</label>
+                  <input className="input" inputMode="decimal" value={draft.amount}
+                         onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label">Date</label>
+                  <input type="date" className="input" value={draft.txn_date}
+                         onChange={(e) => setDraft({ ...draft, txn_date: e.target.value })} />
+                </div>
+                {open.source === "entry" && (
+                  <>
+                    <div>
+                      <label className="label">Category</label>
+                      <select className="input" value={draft.category}
+                              onChange={(e) => setDraft({ ...draft, category: e.target.value })}>
+                        {[draft.category, ...categories.filter((c) => c !== draft.category)]
+                          .map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Party</label>
+                      <input className="input" value={draft.party}
+                             onChange={(e) => setDraft({ ...draft, party: e.target.value })} />
+                    </div>
+                  </>
+                )}
+                {open.source !== "entry" && (
+                  <div>
+                    <label className="label">Reference</label>
+                    <input className="input" value={draft.reference}
+                           onChange={(e) => setDraft({ ...draft, reference: e.target.value })} />
+                  </div>
+                )}
+                <div>
+                  <label className="label">Description</label>
+                  <input className="input" value={draft.description}
+                         onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+                </div>
+                {open.source !== "transfer" && (
+                  <div>
+                    <label className="label">Bank account</label>
+                    <select className="input" value={draft.bank_account_id}
+                            onChange={(e) => setDraft({ ...draft, bank_account_id: e.target.value })}>
+                      <option value="">Not specified</option>
+                      {banks.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {open.source === "invoice_payment" && (
+                  <p className="text-[11px] leading-relaxed text-muted">
+                    Changing this updates the invoice&rsquo;s paid amount and status automatically.
+                  </p>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button className="btn-primary flex-1 justify-center" onClick={() => saveEdit(open)} disabled={saving}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    Save changes
+                  </button>
+                  <button className="btn-ghost text-muted" onClick={() => setEditing(false)} disabled={saving}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
             <dl className="mt-6 space-y-3 text-[13px]">
               {[
                 ["Date", fmtDate(open.txn_date)],
@@ -341,6 +507,41 @@ export function TransactionsClient({
                 </div>
               ))}
             </dl>
+            )}
+
+            {!editing && (
+              <div className="mt-6 flex gap-2">
+                {canEdit(open) && (
+                  <button className="btn-outline flex-1 justify-center text-sm" onClick={() => startEdit(open)}>
+                    <Pencil className="h-3.5 w-3.5" /> Edit
+                  </button>
+                )}
+                {canDelete(open) && (
+                  confirming ? (
+                    <div className="flex flex-1 gap-2">
+                      <button className="btn-danger flex-1 justify-center text-sm" onClick={() => remove(open)} disabled={saving}>
+                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        Delete for good
+                      </button>
+                      <button className="btn-ghost text-sm text-muted" onClick={() => setConfirming(false)}>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button className="btn-ghost px-3 text-sm text-muted hover:text-red-600"
+                            onClick={() => setConfirming(true)}>
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+
+            {!editing && !canEdit(open) && (
+              <p className="mt-4 text-[11px] leading-relaxed text-muted">
+                Approved entries can only be changed by an owner or accountant.
+              </p>
+            )}
 
             <div className="mt-6 space-y-2">
               {open.invoice_id && (
