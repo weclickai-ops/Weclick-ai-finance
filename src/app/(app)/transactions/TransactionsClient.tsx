@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { money, cx, fmtDate } from "@/lib/utils";
@@ -64,6 +65,14 @@ export function TransactionsClient({
   const [sort, setSort] = useState<{ by: "txn_date" | "amount"; dir: "asc" | "desc" }>({
     by: "txn_date", dir: "desc",
   });
+  const supabase = createClient();
+
+  /** Receipts live in a private bucket — mint a short-lived link to view one. */
+  async function openReceipt(path: string) {
+    const { data, error } = await supabase.storage.from("receipts").createSignedUrl(path, 60);
+    if (error || !data) return;
+    window.open(data.signedUrl, "_blank", "noopener");
+  }
 
   const bankName = useMemo(
     () => new Map(banks.map((b) => [b.id, b.label])),
@@ -340,10 +349,10 @@ export function TransactionsClient({
                 </Link>
               )}
               {open.receipt_url && (
-                <a href={open.receipt_url} target="_blank" rel="noopener noreferrer"
-                   className="btn-outline w-full justify-center text-sm">
+                <button onClick={() => openReceipt(open.receipt_url!)}
+                        className="btn-outline w-full justify-center text-sm">
                   <ExternalLink className="h-4 w-4" /> View receipt
-                </a>
+                </button>
               )}
             </div>
 
