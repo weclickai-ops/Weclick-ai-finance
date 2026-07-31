@@ -3,12 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { getSession, getTeam } from "@/lib/session";
 import { PageHeader } from "../PageHeader";
 import { TransactionsClient, type Txn } from "./TransactionsClient";
+import { AddTransaction } from "./AddTransaction";
+import type { FinanceUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function TransactionsPage() {
   const supabase = await createClient();
-  const { user } = await getSession();
+  const { user, me } = await getSession();
   if (!user) redirect("/login");
 
   const [{ data: txns }, { data: banks }, { data: cats }, team] = await Promise.all([
@@ -27,6 +29,13 @@ export default async function TransactionsPage() {
       <PageHeader
         title="Transactions"
         subtitle="Every movement of money — in, out, and between your own accounts."
+        action={
+          <AddTransaction
+            banks={(banks ?? []) as { id: string; label: string }[]}
+            categories={(cats ?? []).map((c: any) => c.name)}
+            me={me as FinanceUser | null}
+          />
+        }
       />
       <TransactionsClient
         txns={(txns ?? []) as Txn[]}
