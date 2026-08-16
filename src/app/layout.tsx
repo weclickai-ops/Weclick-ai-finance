@@ -1,28 +1,44 @@
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
-import { Sidebar } from "@/components/Sidebar";
-import type { FinanceUser } from "@/lib/types";
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, me: fu } = await getSession();
-  if (!user) redirect("/login");
+export const metadata: Metadata = {
+  title: "WeClick AI · Finance",
+  description: "Revenue, expenses and dues for WeClick AI",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon-32.png",
+    apple: "/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Finance",
+    statusBarStyle: "black-translucent",
+  },
+  // Amounts and reference numbers shouldn't become tappable "phone numbers".
+  formatDetection: { telephone: false },
+};
 
-  // no finance account, or not approved yet — the CRM login does not get you in here
-  if (!fu || !fu.active) redirect("/pending");
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Pinch-zoom stays available — these tables are dense.
+  maximumScale: 5,
+  themeColor: "#1A1A1A",
+  viewportFit: "cover",
+};
 
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // Phones scroll the whole page so the top bar can stick and browser chrome
-    // gets out of the way; desktop keeps the fixed sidebar it already had.
-    <div className="lg:flex lg:h-screen lg:overflow-hidden">
-      <Sidebar user={fu as FinanceUser} />
-      <main className="flex-1 lg:overflow-y-auto">
-        <div
-          className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-7 lg:px-8"
-          style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
-        >
-          {children}
-        </div>
-      </main>
-    </div>
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body>{children}</body>
+    </html>
   );
 }
