@@ -1,0 +1,21 @@
+{
+  "name": "WeClick AI Finance",
+  "short_name": "Finance",
+  "description": "Transactions, invoices and bank balance for WeClick AI",
+  "start_url": "/overview",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F7F7F5",
+  "theme_color": "#1A1A1A",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Add transaction", "url": "/transactions" },
+    { "name": "Bank balance", "url": "/balance" },
+    { "name": "Invoices", "url": "/invoices" }
+  ]
+}
